@@ -20,6 +20,7 @@ class Doctor extends Model
         'email',
         'department',
         'availability',
+        'user_id',
     ];
 
     /**

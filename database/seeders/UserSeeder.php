@@ -23,6 +23,13 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
+                'email' => 'doctor@medical.com',
+                'password' => Hash::make('password123'), // Correct way to hash password
+                'role' => 'doctor',
+                'created_at' => now(), // Add timestamps
+                'updated_at' => now(),
+            ],
+            [
                 'email' => 'patient@medical.com',
                 'password' => Hash::make('password123'), // Correct way to hash password
                 'role' => 'patient',

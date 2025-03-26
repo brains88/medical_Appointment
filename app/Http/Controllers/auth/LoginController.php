@@ -39,9 +39,17 @@ class LoginController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Login successful!',
-                    'redirect' => '/admin-dashboard', // Redirect to admin dashboard
+                    'redirect' => route('admin.dashboard'),
                 ]);
             }
+            elseif ($user->role === 'doctor') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Login successful!',
+                    'redirect' => '/doctor/dashboard', // Redirect to admin dashboard
+                ]);
+            }
+
         } else {
             // Authentication failed
             return response()->json([

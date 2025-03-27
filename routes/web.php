@@ -18,6 +18,12 @@ Route::middleware(['auth', 'patient'])->prefix('patient')->group(function () {
     Route::post('/generate-token', [App\Http\Controllers\API\GenerateAccessTokenController::class, 'generate_token']);
 });
 
+Route::middleware(['auth', 'doctor'])->prefix('doctor')->name('doctor.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\doctor\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/appointment', [App\Http\Controllers\doctor\AppointmentController::class, 'index'])->name('appointment');
+});
+
+
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard - Now correctly named 'admin.dashboard'
     Route::get('/dashboard', [App\Http\Controllers\admin\DashboardController::class, 'index'])->name('dashboard');

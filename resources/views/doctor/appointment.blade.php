@@ -1,6 +1,43 @@
 @include('layouts.header')
 
 <style>
+    /* Improved message modal styling */
+    .message-modal {
+        display: none;
+        position: fixed;
+        z-index: 1050;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.8);
+        overflow: auto;
+    }
+
+    
+
+    .message-modal-content {
+        background: white;
+        margin: 5% auto;
+        padding: 25px;
+        border-radius: 10px;
+        width: 60%;
+        max-width: 700px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    .close-message {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.3s;
+    }
+    
+    .close-message:hover {
+        color: #333;
+    }
     .voice_call_btn,
     .video_call_btn,
     .email_btn {
@@ -116,11 +153,11 @@
     <div class="container">
         <div class="row">
             <div class="col-xl-3 col-lg-4 wow fadeInLeft" data-wow-duration="1s">
-                @include('layouts.usernavbar')
+                @include('layouts.doctor_navbar')
             </div>
 
             <div class="col-xl-9 col-lg-8 wow fadeInRight" data-wow-duration="1s">
-                <div class="dashboard_content">
+            <div class="dashboard_content">
                     <h5>Appointment Details</h5>
                     <div class="appointment_history">
                         <div class="table-responsive">
@@ -134,40 +171,48 @@
                                     <th class="um_duration"><p>Time</p></th>
                                     <th class="um_action"><p>Action</p></th>
                                 </tr>
-                                @foreach($patient->appointments as $index => $appointment)
+                            </thead>
+                            <tbody class="tf_dashboard__listing_body">
+                                @foreach($doctor->appointments as $index => $appointment)
                                 <tr class="tabile_row">
-                                    <td class="um_sn"><p>{{ $index + 1 }}</p></td>
+                                    <td class="um_sn">{{ $index + 1 }}</td>
                                     <td class="um_name">
-                                        <p>{{ $appointment->doctor->name }}</p>
-                                    </td>
-                                    <td class="um_name">
-                                        <p>{{ $appointment->doctor->department }}</p>
+                                        {{ $appointment->patient->name }}
                                     </td>
                                     <td class="um_date">
-                                        <p>{{ $appointment->appointment_date->format('M d, Y') }}</p>
-                                        <span class="date_time">{{ $appointment->appointment_time }}</span>
+                                        {{ $appointment->appointment_date->format('M d, Y') }}
                                     </td>
                                     <td class="um_duration">
-                                        <p>{{ $appointment->appointment_time }}</p>
+                                        {{ $appointment->appointment_time }}
                                     </td>
-                                    <td class="um_action">
+                                    <td class="um_status">
                                         @if($appointment->status === 'pending')
-                                            <span class="text-warning">Pending</span>
-                                        @elseif($appointment->status === 'confirmed' && $appointment->appointment_date >= now()->toDateString())
-                                            <!-- Action buttons for upcoming confirmed appointments -->
-                                            <button class="voice_call_btn" title="Voice Call" onclick="initiateVoiceCall()">
-                                                <i class="fas fa-phone"></i> Call
-                                            </button>
-                                            <button class="video_call_btn" title="Video Call" onclick="initiateVideoCall()">
-                                                <i class="fas fa-video"></i> Video
-                                            </button>
-                                            <button class="email_btn" title="Send Email" onclick="sendEmail()">
-                                                <i class="fas fa-envelope"></i> Email
-                                            </button>
+                                            <span class="badge bg-warning">Pending</span>
+                                        @elseif($appointment->status === 'confirmed')
+                                            <span class="badge bg-success">Confirmed</span>
                                         @else
-                                            <span class="text-danger">
+                                            <span class="badge bg-danger">
                                                 {{ $appointment->status === 'cancelled' ? 'Cancelled' : 'Expired' }}
                                             </span>
+                                        @endif
+                                    </td>
+                                    <td class="um_action">
+                                        <!-- View Message Button -->
+                                        <button class="action-btn view_message_btn" 
+                                                onclick="showMessage('{{ addslashes($appointment->message) }}')">
+                                            <i class="fas fa-envelope"></i> Message
+                                        </button>
+                                        
+                                        @if($appointment->status === 'confirmed' && $appointment->appointment_date >= now()->toDateString())
+                                            <!-- Action buttons for upcoming confirmed appointments -->
+                                            <button class="action-btn voice_call_btn" 
+                                                    onclick="initiateVoiceCall('{{ $appointment->patient->mobile }}')">
+                                                <i class="fas fa-phone"></i> Call
+                                            </button>
+                                            <button class="action-btn video_call_btn" 
+                                                    onclick="initiateVideoCall('{{ $appointment->id }}', '{{ $doctor->id }}')">
+                                                <i class="fas fa-video"></i> Video
+                                            </button>
                                         @endif
                                     </td>
                                 </tr>
@@ -185,11 +230,25 @@
     APPOINTMENT END
 ==============================-->
 
+<!-- Message Modal -->
+<div id="messageModal" class="message-modal">
+    <div class="message-modal-content">
+        <span class="close-message" onclick="closeMessageModal()">&times;</span>
+        <h4><i class="fas fa-envelope-open-text me-2"></i>Patient Message</h4>
+        <div id="messageContent" class="mt-3 p-3 bg-light rounded">
+            <!-- Message content will be inserted here -->
+        </div>
+        <div class="mt-3 text-end">
+            <button class="btn btn-secondary" onclick="closeMessageModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- Video Call Modal -->
 <div id="videoCallModal">
     <div class="video-call-container">
         <span class="close-btn" onclick="endCall()">&times;</span>
-        <div class="call-status" id="callStatus">Connecting to doctor...</div>
+        <div class="call-status" id="callStatus">Waiting for connection...</div>
         <video id="remoteVideo" autoplay playsinline></video>
         <video id="localVideo" autoplay playsinline muted></video>
         <div class="call-controls">
@@ -208,87 +267,178 @@
 
 @include('layouts.footer')
 
-<!-- Include Twilio Video JS -->
-<!-- Remove this line -->
-<script src="https://sdk.twilio.com/js/video/releases/2.23.0/twilio-video.min.js"></script>
-
-<!-- Add PeerJS library -->
+<!-- PeerJS for video calls -->
 <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 
+<!-- In your doctor dashboard, update the JavaScript section: -->
 <script>
-    // Pass PHP variables to JavaScript (KEEP THESE)
-    const doctorPhoneNumber = "<?php echo $appointment->doctor->mobile; ?>";
-    const doctorEmail = "<?php echo $appointment->doctor->email; ?>";
-    const patientId = "<?php echo $appointment->id; ?>";
-    const doctorId = "<?php echo $appointment->doctor->id; ?>";
-    const appointmentId = "<?php echo $appointment->id; ?>";
-
-    // PeerJS Variables (REPLACE WebRTC vars)
+    // PeerJS variables
     let peer;
     let currentCall;
     let localStream;
+    let isMuted = false;
+    let isVideoOff = false;
+    
+    // Initialize PeerJS when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initializePeerConnection();
+    });
 
-    // --- KEEP THESE FUNCTIONS UNCHANGED ---
-    function initiateVoiceCall() {
-        window.location.href = `tel:${doctorPhoneNumber}`;
-    }
-
-    function sendEmail() {
-        const subject = "Appointment Query";
-        const body = "Hello Doctor, I have a question regarding my appointment.";
-        window.location.href = `mailto:${doctorEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    }
-
-    // --- MODIFIED VIDEO CALL FUNCTIONS ---
-    async function initiateVideoCall() {
-        console.log("Starting PeerJS video call...");
-        document.getElementById('videoCallModal').style.display = 'block';
-        document.getElementById('callStatus').textContent = 'Starting call...';
-
+    function initializePeerConnection() {
         try {
-            // 1. Initialize PeerJS (Patient ID = patient-123)
-            peer = new Peer(`patient-${patientId}`);
+            console.log('Initializing PeerJS for doctor-{{ $doctor->id }}');
             
-            // 2. Get camera/microphone
-            localStream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: { width: 640, height: 480 }
+            // CORRECTED STUN SERVER CONFIGURATION
+            peer = new Peer(`doctor-{{ $doctor->id }}`, {
+                debug: 3,
+                config: {
+                    iceServers: [
+                        // Valid STUN servers
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
+                        
+                        // For production, add your TURN server here:
+                        // {
+                        //   urls: 'turn:your.turn.server:3478',
+                        //   username: 'your_username',
+                        //   credential: 'your_password'
+                        // }
+                    ]
+                }
             });
             
-            // 3. Show local video
-            document.getElementById('localVideo').srcObject = localStream;
-            
-            // 4. Call the doctor (Doctor ID = doctor-456)
-            currentCall = peer.call(`doctor-${doctorId}`, localStream);
-            
-            // 5. Handle remote stream
-            currentCall.on('stream', (remoteStream) => {
-                document.getElementById('remoteVideo').srcObject = remoteStream;
-                document.getElementById('callStatus').textContent = 'Call connected!';
+            peer.on('open', (id) => {
+                console.log('Doctor PeerJS connection open with ID:', id);
             });
             
-            // Error handling
-            currentCall.on('error', (err) => {
-                console.error("Call error:", err);
-                document.getElementById('callStatus').textContent = 'Call failed: ' + err.message;
+            // Handle incoming calls - UPDATED WITH BETTER ERROR HANDLING
+            peer.on('call', async (call) => {
+                console.log('Incoming call from:', call.peer);
+                
+                try {
+                    // Show the video call modal
+                    document.getElementById('videoCallModal').style.display = 'block';
+                    document.getElementById('callStatus').textContent = 'Incoming call...';
+                    
+                    // Get user media
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: true, 
+                        audio: true 
+                    });
+                    
+                    console.log('Doctor obtained local media stream');
+                    
+                    // Show local video
+                    document.getElementById('localVideo').srcObject = stream;
+                    localStream = stream;
+                    
+                    // Answer the call with our stream
+                    call.answer(stream);
+                    currentCall = call;
+                    console.log('Doctor answered the call');
+                    
+                    // Handle the stream from the caller
+                    call.on('stream', (remoteStream) => {
+                        console.log('Received remote stream from patient');
+                        document.getElementById('remoteVideo').srcObject = remoteStream;
+                        document.getElementById('callStatus').textContent = 'Call connected';
+                    });
+                    
+                    // Handle call ending
+                    call.on('close', endCall);
+                    call.on('error', (err) => {
+                        console.error('Call error:', err);
+                        document.getElementById('callStatus').textContent = 'Call error: ' + err.message;
+                        setTimeout(endCall, 2000);
+                    });
+                    
+                } catch (err) {
+                    console.error('Call handling error:', err);
+                    document.getElementById('callStatus').textContent = 
+                        'Error: ' + (err.message || 'Failed to handle call');
+                    endCall();
+                }
             });
-
-        } catch (error) {
-            console.error("Error starting call:", error);
-            document.getElementById('callStatus').textContent = 'Error: ' + error.message;
+            
+            // Handle errors
+            peer.on('error', (err) => {
+                console.error('PeerJS error:', err);
+                alert('Connection error: ' + err.message);
+            });
+            
+        } catch (err) {
+            console.error('PeerJS initialization failed:', err);
+            alert('Failed to initialize video call system. Please refresh the page.');
         }
     }
 
-    // Simplified end call
+    // Properly defined endCall function
     function endCall() {
-        if (currentCall) currentCall.close();
-        if (localStream) localStream.getTracks().forEach(track => track.stop());
-        document.getElementById('videoCallModal').style.display = 'none';
+        try {
+            console.log('Ending call...');
+            
+            if (currentCall) {
+                currentCall.close();
+                currentCall = null;
+            }
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            document.getElementById('videoCallModal').style.display = 'none';
+            document.getElementById('remoteVideo').srcObject = null;
+            document.getElementById('localVideo').srcObject = null;
+            
+        } catch (err) {
+            console.error('Error ending call:', err);
+        }
     }
 
-    // Keep toggle functions unchanged
-    function toggleMute() { /* ... */ }
-    function toggleVideo() { /* ... */ }
+    // Toggle mute function
+    function toggleMute() {
+        if (localStream) {
+            const audioTracks = localStream.getAudioTracks();
+            audioTracks.forEach(track => {
+                track.enabled = !track.enabled;
+            });
+            isMuted = !isMuted;
+            const muteBtn = document.querySelector('.control-btn:nth-child(1)');
+            muteBtn.innerHTML = isMuted 
+                ? '<i class="fas fa-microphone-slash"></i>' 
+                : '<i class="fas fa-microphone"></i>';
+        }
+    }
+
+    // Toggle video function
+    function toggleVideo() {
+        if (localStream) {
+            const videoTracks = localStream.getVideoTracks();
+            videoTracks.forEach(track => {
+                track.enabled = !track.enabled;
+            });
+            isVideoOff = !isVideoOff;
+            const videoBtn = document.querySelector('.control-btn:nth-child(2)');
+            videoBtn.innerHTML = isVideoOff 
+                ? '<i class="fas fa-video-slash"></i>' 
+                : '<i class="fas fa-video"></i>';
+        }
+    }
+
+    // Message modal functions
+    function showMessage(message) {
+        const messageContent = document.getElementById('messageContent');
+        messageContent.innerHTML = message 
+            ? `<p>${message.replace(/\n/g, '<br>')}</p>` 
+            : '<p class="text-muted">No message provided</p>';
+        document.getElementById('messageModal').style.display = 'block';
+    }
+
+    function closeMessageModal() {
+        document.getElementById('messageModal').style.display = 'none';
+    }
 </script>
 
 </body>

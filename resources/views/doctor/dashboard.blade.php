@@ -9,7 +9,7 @@
             <div class="row">
 
                 <div class="col-xl-3 col-lg-4 wow fadeInLeft" data-wow-duration="1s">
-                @include('layouts.usernavbar')
+                @include('layouts.doctor_navbar')
                 </div>
 
                 <div class="col-xl-9 col-lg-8 mb-5">
@@ -50,14 +50,16 @@
                         </div>
 
                         <div class="dashboard_profile mt-5">
-                            <h5>Profile information</h5>
+                            <h5>Doctor`s Profile information</h5>
                             <!-- Edit Profile Button 
                             <a href="dashboard_profile_edit.html">edit</a>
                             -->
                             <ul class="list-unstyled">
-                            <li><span>Name:</span> {{ $patient->name }}</li>
-                            <li><span>Phone:</span> {{ $patient->mobile }}</li>
-                            <li><span>Email:</span> {{ $user->email }}</li>
+                            <li><span>Name:</span> {{ $doctor->name }}</li>
+                            <li><span>Phone:</span> {{ $doctor->mobile }}</li>
+                            <li><span>Email:</span> {{ $doctor->email }}</li>
+                            <li><span>Department:</span> {{ $doctor->department }}</li>
+                            <li><span>Availability:</span> {{ $doctor->availability }}</li>
                         </ul>
                         </div>
                     </div>

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\user;
+namespace App\Http\Controllers\doctor;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -14,15 +14,15 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $patient = $user->patient;
-    
+        $doctor = $user->doctor; 
+        
         $appointmentStats = [
-            'total' => $patient->totalAppointments(),
-            'active' => $patient->activeAppointments(),
-            'expired' => $patient->expiredAppointments(),
-            'today' => $patient->todaysAppointments(),
+            'total' => $doctor->appointments()->count(),
+            'active' => $doctor->activeAppointments(),
+            'expired' => $doctor->expiredAppointments(),
+            'today' => $doctor->todaysAppointments(),
         ];
     
-        return view('user.dashboard', compact('user', 'patient', 'appointmentStats'));
+        return view('doctor.dashboard', compact('user', 'doctor', 'appointmentStats'));
     }
 }

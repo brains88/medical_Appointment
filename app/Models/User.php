@@ -50,4 +50,9 @@ class User extends Authenticatable // Extend Authenticatable
     {
         return $this->hasOne(Patient::class, 'user_id', 'id'); // Correct foreign and local keys
     }
+
+    public function doctor()
+    {
+     return $this->hasOne(Doctor::class, 'user_id', 'id');
+    }
 }

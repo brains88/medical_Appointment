@@ -46,7 +46,7 @@ class LoginController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Login successful!',
-                    'redirect' => '/doctor/dashboard', // Redirect to admin dashboard
+                    'redirect' => route('doctor.dashboard'), // Redirect to admin dashboard
                 ]);
             }
 

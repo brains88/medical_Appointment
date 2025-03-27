@@ -158,9 +158,10 @@
                                             <button class="voice_call_btn" title="Voice Call" onclick="initiateVoiceCall()">
                                                 <i class="fas fa-phone"></i> Call
                                             </button>
-                                            <button class="video_call_btn" title="Video Call" onclick="initiateVideoCall()">
-                                                <i class="fas fa-video"></i> Video
-                                            </button>
+                                            <button class="video_call_btn" title="Video Call" 
+                                                onclick="initiateVideoCall('{{ $appointment->doctor->id }}')">
+                                            <i class="fas fa-video"></i> Video
+                                        </button>
                                             <button class="email_btn" title="Send Email" onclick="sendEmail()">
                                                 <i class="fas fa-envelope"></i> Email
                                             </button>
@@ -212,84 +213,151 @@
 <!-- Remove this line -->
 <script src="https://sdk.twilio.com/js/video/releases/2.23.0/twilio-video.min.js"></script>
 
-<!-- Add PeerJS library -->
+<!-- Add this to your patient dashboard -->
 <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-
 <script>
-    // Pass PHP variables to JavaScript (KEEP THESE)
-    const doctorPhoneNumber = "<?php echo $appointment->doctor->mobile; ?>";
-    const doctorEmail = "<?php echo $appointment->doctor->email; ?>";
-    const patientId = "<?php echo $appointment->id; ?>";
-    const doctorId = "<?php echo $appointment->doctor->id; ?>";
-    const appointmentId = "<?php echo $appointment->id; ?>";
-
-    // PeerJS Variables (REPLACE WebRTC vars)
+    // PeerJS variables
     let peer;
     let currentCall;
     let localStream;
-
-    // --- KEEP THESE FUNCTIONS UNCHANGED ---
-    function initiateVoiceCall() {
-        window.location.href = `tel:${doctorPhoneNumber}`;
-    }
-
-    function sendEmail() {
-        const subject = "Appointment Query";
-        const body = "Hello Doctor, I have a question regarding my appointment.";
-        window.location.href = `mailto:${doctorEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    }
-
-    // --- MODIFIED VIDEO CALL FUNCTIONS ---
-    async function initiateVideoCall() {
-        console.log("Starting PeerJS video call...");
-        document.getElementById('videoCallModal').style.display = 'block';
-        document.getElementById('callStatus').textContent = 'Starting call...';
-
+    let isMuted = false;
+    let isVideoOff = false;
+    
+    // Initialize PeerJS when page loads
+    document.addEventListener('DOMContentLoaded', function() {
         try {
-            // 1. Initialize PeerJS (Patient ID = patient-123)
-            peer = new Peer(`patient-${patientId}`);
+            console.log('Initializing PeerJS for patient-{{ $patient->id }}');
             
-            // 2. Get camera/microphone
-            localStream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: { width: 640, height: 480 }
+            peer = new Peer(`patient-{{ $patient->id }}`, {
+                debug: 3,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
+                    ]
+                }
             });
             
-            // 3. Show local video
-            document.getElementById('localVideo').srcObject = localStream;
+            peer.on('open', (id) => {
+                console.log('Patient PeerJS ready with ID:', id);
+            });
             
-            // 4. Call the doctor (Doctor ID = doctor-456)
-            currentCall = peer.call(`doctor-${doctorId}`, localStream);
+            peer.on('error', (err) => {
+                console.error('PeerJS error:', err);
+                alert('Connection error: ' + err.message);
+            });
+        } catch (err) {
+            console.error('PeerJS initialization failed:', err);
+            alert('Failed to initialize video call system');
+        }
+    });
+    
+    // Video call function - UPDATED
+    async function initiateVideoCall(doctorId) {
+        try {
+            console.log(`Attempting to call doctor-${doctorId}`);
             
-            // 5. Handle remote stream
-            currentCall.on('stream', (remoteStream) => {
+            // Show call modal
+            const videoModal = document.getElementById('videoCallModal');
+            const callStatus = document.getElementById('callStatus');
+            
+            videoModal.style.display = 'block';
+            callStatus.textContent = 'Calling doctor...';
+            
+            // Get local media
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: true 
+            });
+            
+            console.log('Patient obtained local media stream');
+            
+            // Show local video
+            document.getElementById('localVideo').srcObject = stream;
+            localStream = stream;
+            
+            // Call the doctor
+            const call = peer.call(`doctor-${doctorId}`, stream);
+            currentCall = call;
+            console.log('Call initiated to doctor');
+            
+            // Handle remote stream
+            call.on('stream', (remoteStream) => {
+                console.log('Received remote stream from doctor');
                 document.getElementById('remoteVideo').srcObject = remoteStream;
-                document.getElementById('callStatus').textContent = 'Call connected!';
+                callStatus.textContent = 'Call connected';
             });
             
-            // Error handling
-            currentCall.on('error', (err) => {
-                console.error("Call error:", err);
-                document.getElementById('callStatus').textContent = 'Call failed: ' + err.message;
+            // Handle call ending
+            call.on('close', () => {
+                console.log('Call ended by doctor');
+                endCall();
             });
-
-        } catch (error) {
-            console.error("Error starting call:", error);
-            document.getElementById('callStatus').textContent = 'Error: ' + error.message;
+            
+            call.on('error', (err) => {
+                console.error('Call error:', err);
+                callStatus.textContent = 'Call failed: ' + err.message;
+                setTimeout(endCall, 3000);
+            });
+            
+        } catch (err) {
+            console.error('Call initiation failed:', err);
+            document.getElementById('callStatus').textContent = 
+                'Failed to start call: ' + (err.message || 'Unknown error');
+            setTimeout(endCall, 3000);
         }
     }
-
-    // Simplified end call
+    
+    // End call function - IMPROVED
     function endCall() {
-        if (currentCall) currentCall.close();
-        if (localStream) localStream.getTracks().forEach(track => track.stop());
-        document.getElementById('videoCallModal').style.display = 'none';
+        try {
+            if (currentCall) {
+                console.log('Ending current call');
+                currentCall.close();
+                currentCall = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            document.getElementById('videoCallModal').style.display = 'none';
+            document.getElementById('remoteVideo').srcObject = null;
+            document.getElementById('localVideo').srcObject = null;
+        } catch (err) {
+            console.error('Error ending call:', err);
+        }
     }
-
-    // Keep toggle functions unchanged
-    function toggleMute() { /* ... */ }
-    function toggleVideo() { /* ... */ }
+    
+    // Toggle mute function
+    function toggleMute() {
+        if (localStream) {
+            const audioTracks = localStream.getAudioTracks();
+            audioTracks.forEach(track => {
+                track.enabled = !track.enabled;
+            });
+            isMuted = !isMuted;
+            const muteBtn = document.querySelector('.control-btn:nth-child(1)');
+            muteBtn.innerHTML = isMuted 
+                ? '<i class="fas fa-microphone-slash"></i>' 
+                : '<i class="fas fa-microphone"></i>';
+        }
+    }
+    
+    // Toggle video function
+    function toggleVideo() {
+        if (localStream) {
+            const videoTracks = localStream.getVideoTracks();
+            videoTracks.forEach(track => {
+                track.enabled = !track.enabled;
+            });
+            isVideoOff = !isVideoOff;
+            const videoBtn = document.querySelector('.control-btn:nth-child(2)');
+            videoBtn.innerHTML = isVideoOff 
+                ? '<i class="fas fa-video-slash"></i>' 
+                : '<i class="fas fa-video"></i>';
+        }
+    }
 </script>
-
 </body>
 </html>

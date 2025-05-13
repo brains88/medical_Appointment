@@ -102,6 +102,7 @@
                                             @endforeach
                                         </select>
                                     </div>
+                                    <div id="availabilityStatus" class="mt-2 text-info"></div>
                                 </div>
                                 <!-- Message -->
                                 <div class="col-lg-12">
@@ -130,6 +131,44 @@
 @include('layouts.footer')
 
 <script>
+//Check Doctor Availability
+    document.addEventListener('DOMContentLoaded', function () {
+        const doctorSelect = document.querySelector('select[name="doctor"]');
+        const dateInput = document.querySelector('input[name="date"]');
+        const timeSelect = document.querySelector('select[name="time"]');
+        const statusDiv = document.getElementById('availabilityStatus');
+
+        function checkAvailability() {
+            const doctorId = doctorSelect.value;
+            const date = dateInput.value;
+            const time = timeSelect.value;
+
+            if (doctorId && date && time) {
+                statusDiv.innerHTML = '<span>Checking availability...</span>';
+
+                fetch(`/check-doctor-availability?doctor_id=${doctorId}&date=${date}&time=${time}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.available) {
+                            statusDiv.innerHTML = '<span class="text-success">Doctor is available ✅</span>';
+                        } else {
+                            statusDiv.innerHTML = '<span class="text-danger">Doctor is not available ❌</span>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking availability:', error);
+                        statusDiv.innerHTML = '<span class="text-danger">Error checking availability.</span>';
+                    });
+            } else {
+                statusDiv.innerHTML = '';
+            }
+        }
+
+        doctorSelect.addEventListener('change', checkAvailability);
+        dateInput.addEventListener('change', checkAvailability);
+        timeSelect.addEventListener('change', checkAvailability);
+    });
+
 document.getElementById('appointmentForm').addEventListener('submit', function (event) {
     event.preventDefault();  // Prevent default form submission
 

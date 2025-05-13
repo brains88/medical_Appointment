@@ -20,6 +20,27 @@ class AppointmentController extends Controller
         return view('auth.appointment', compact('doctors'));
     }
 
+    //Check Doctor`s availability
+    public function checkAvailability(Request $request)
+{
+    $doctorId = $request->query('doctor_id');
+    $date = $request->query('date');
+    $time = $request->query('time');
+
+    $exists = Appointment::where('doctor_id', $doctorId)
+        ->where('appointment_date', $date)
+        ->where('appointment_time', $time)
+        ->exists();
+
+    if ($exists) {
+        return response()->json([
+            'available' => false,
+            'message' => 'The selected doctor is not available at that time. Please choose another time.',
+        ]);
+    }
+
+    return response()->json(['available' => true]);
+}
     public function store(Request $request)
     {
         // Validate the request
@@ -100,4 +121,5 @@ class AppointmentController extends Controller
             ], 500);
         }
     }
+
 }

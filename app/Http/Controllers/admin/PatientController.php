@@ -59,4 +59,20 @@ class PatientController extends Controller
     
         return response()->json($stats);
     }
+
+
+    public function deletePatient(Patient $patient)
+    {
+        // Delete all appointments related to this patient
+        Appointment::where('patient_id', $patient->id)->delete();
+        
+        if ($patient->image) {
+            Storage::disk('public')->delete($patient->image);
+        }
+        // Then delete the patient
+        $patient->delete();
+    
+        return redirect()->route('admin.patients.index')->with('success', 'Patient and their appointments deleted successfully!');
+    }
+    
 }

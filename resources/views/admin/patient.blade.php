@@ -67,7 +67,7 @@
                                     <tbody>
                                         @forelse($patients as $patient)
                                         <tr>
-                                            <td>#{{ $patient->id }}</td>
+                                        <td>{{ $loop->iteration }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <img src="{{ $patient->image ? asset('storage/public/images/' . $patient->image) : asset('assets/images/default-avatar.jpg') }}" 
@@ -87,6 +87,19 @@
                                                     <i class="fas fa-chart-bar"></i> View Stats
                                                 </button>
                                             </td>
+                                            <td>
+                                            <form action="{{ route('admin.patients.delete', $patient->id) }}" 
+                                              method="POST" 
+                                              class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" 
+                                                    class="btn btn-outline-danger" 
+                                                    onclick="return confirm('Are you sure you want to delete this Patient?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                        </td>
                                         </tr>
                                         @empty
                                         <tr>

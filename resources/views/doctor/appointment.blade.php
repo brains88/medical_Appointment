@@ -185,17 +185,21 @@
                                     <td class="um_duration">
                                         {{ $appointment->appointment_time }}
                                     </td>
-                                    <td class="um_status">
-                                        @if($appointment->status === 'pending')
-                                            <span class="badge bg-warning">Pending</span>
-                                        @elseif($appointment->status === 'confirmed')
-                                            <span class="badge bg-success">Confirmed</span>
-                                        @else
-                                            <span class="badge bg-danger">
-                                                {{ $appointment->status === 'cancelled' ? 'Cancelled' : 'Expired' }}
-                                            </span>
-                                        @endif
-                                    </td>
+                                    <td>
+                                       @include('components.status-badge', ['status' => $appointment->status])
+                                            </td>
+                                            @if($appointment->status=='pending' || $appointment->status=='rejected' )
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm approve-btn" data-id="{{ $appointment->id }}">
+                                                        <i class="fas fa-check"></i> Approve
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm reject-btn" data-id="{{ $appointment->id }}">
+                                                        <i class="fas fa-times"></i> Reject
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            @endif
                                     <td class="um_action">
                                         <!-- View Message Button -->
                                         <button class="action-btn view_message_btn" 
@@ -272,6 +276,66 @@
 
 <!-- In your doctor dashboard, update the JavaScript section: -->
 <script>
+
+
+document.querySelectorAll('.approve-btn, .reject-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const appointmentId = this.getAttribute('data-id');
+            const action = this.classList.contains('approve-btn') ? 'confirmed' : 'cancelled';
+            const button = this;
+            
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (!csrfToken) {
+                console.error('CSRF token not found');
+                return;
+            }
+            // Disable button during processing
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing';
+
+            fetch(`/doctor/appointments/${appointmentId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                   'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: action
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Find the row and update status
+                    const row = button.closest('tr');
+                    row.querySelector('.badge').outerHTML = data.status_badge;
+                    
+                    // Remove action buttons
+                    row.querySelector('td:last-child').innerHTML = 
+                        `<span class="text-muted">Processed</span>`;
+                    
+                    // Show success message
+                    showToast('success', data.message);
+                }
+            })
+            .catch(error => {
+                button.disabled = false;
+                button.innerHTML = action === 'confirmed' 
+                    ? '<i class="fas fa-check"></i> Approve' 
+                    : '<i class="fas fa-times"></i> Reject';
+                
+                const message = error.message || 'An error occurred';
+                showToast('error', message);
+            });
+        });
+    });
+
     // PeerJS variables
     let peer;
     let currentCall;

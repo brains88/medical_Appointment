@@ -30,8 +30,8 @@ class DoctorController extends Controller
                                               ->orWhere('status', 'expired');
                                         });
                                     }])
-                          ->latest()
-                          ->paginate(10);
+                                    ->latest()
+                                    ->paginate(10);
 
         return view('admin.doctor', compact('doctors'));
     }
@@ -94,5 +94,13 @@ class DoctorController extends Controller
             'message' => 'Doctor added successfully'
         ]);
     }
+    
 
+    public function deleteDoctor(Doctor $doctor)
+    {
+        
+        $doctor->delete();
+        
+        return redirect()->route('admin.doctors.index')->with('success', 'Doctor deleted successfully!');
+    }
 }

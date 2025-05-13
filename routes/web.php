@@ -8,7 +8,7 @@ Route::post('/appointment/store', [App\Http\Controllers\auth\AppointmentControll
 Route::get('/login', [App\Http\Controllers\auth\LoginController::class, 'index'])->name('login');
 Route::post('/login/auth', [App\Http\Controllers\auth\LoginController::class, 'login'])->name('login.auth');
 Route::get('/logout', [App\Http\Controllers\auth\LoginController::class, 'logout'])->name('logout');
-
+Route::get('/check-doctor-availability', [App\Http\Controllers\auth\AppointmentController::class, 'checkAvailability']);
 //User Dashboard
 Route::middleware(['auth', 'patient'])->prefix('patient')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\user\DashboardController::class, 'index'])->name('patient.dashboard');
@@ -21,6 +21,7 @@ Route::middleware(['auth', 'patient'])->prefix('patient')->group(function () {
 Route::middleware(['auth', 'doctor'])->prefix('doctor')->name('doctor.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\doctor\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/appointment', [App\Http\Controllers\doctor\AppointmentController::class, 'index'])->name('appointment');
+    Route::put('/appointments/{appointment}/status', [App\Http\Controllers\doctor\AppointmentController::class, 'updateStatus'])->name('update.status');
 });
 
 
@@ -41,13 +42,20 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         // Add the stats route while maintaining your structure
         Route::get('/{doctor}/stats', [App\Http\Controllers\admin\DoctorController::class, 'getDoctorStats'])
             ->name('stats');
-    });
+       //delete Doctors
+       Route::delete('{doctor}/delete', [App\Http\Controllers\admin\DoctorController::class, 'deleteDoctor'])
+       ->name('delete');
+        });
+
     // Patients Routes - All names will be prefixed with 'admin.patients.'
     Route::prefix('patients')->name('patients.')->group(function () {
         Route::get('/', [App\Http\Controllers\admin\PatientController::class, 'index'])->name('index');
         Route::get('/{patient}', [App\Http\Controllers\admin\PatientController::class, 'show'])->name('show');
         Route::get('/{patient}/stats', [App\Http\Controllers\admin\PatientController::class, 'getAppointmentStats'])->name('stats'); // New route
-        Route::delete('/{patient}', [App\Http\Controllers\admin\PatientController::class, 'destroy'])->name('destroy');
+       //delete Patient
+       Route::delete('{patient}/delete', [App\Http\Controllers\admin\PatientController::class, 'deletePatient'])
+       ->name('delete');
+  
     });
     // Appointments Routes - All names will be prefixed with 'admin.appointments.'
     Route::prefix('appointments')->name('appointments.')->group(function () {

@@ -40,7 +40,7 @@
                                     <tbody>
                                         @forelse($doctors as $doctor)
                                         <tr>
-                                            <td>#{{ $doctor->id }}</td>
+                                            <td>{{ $loop->iteration }}</td>
                                             <td>{{ $doctor->name }}</td>
                                             <td>{{ $doctor->department }}</td>
                                             <td>{{ $doctor->mobile }}</td>
@@ -54,6 +54,19 @@
                                                     <i class="fas fa-chart-bar"></i> Stats
                                                 </button>
                                             </td>
+                                            <td>
+                                            <form action="{{ route('admin.doctors.delete', $doctor->id) }}" 
+                                              method="POST" 
+                                              class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" 
+                                                    class="btn btn-outline-danger" 
+                                                    onclick="return confirm('Are you sure you want to delete this Doctor?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                        </td>
                                         </tr>
                                         @empty
                                         <tr>

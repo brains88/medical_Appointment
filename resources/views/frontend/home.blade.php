@@ -334,7 +334,7 @@
                         </div>
                         <div class="col-xl-4">
                             <div class="appoinment_img">
-                                <img src="assets/images/appoinment_img.png" alt="appointment" class="img-fluid w-100">
+                                <img src="https://img.freepik.com/free-photo/medium-shot-smiley-doctor-with-coat_23-2148814212.jpg" alt="appointment" class="img-fluid w-100">
                             </div>
                         </div>
                     </div>

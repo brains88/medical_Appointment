@@ -182,6 +182,7 @@
                                                 <option value="{{ $doctor->id }}">{{ $doctor->name }} - {{ $doctor->department }}</option>
                                             @endforeach
                                     </select>
+                                    <div id="availabilityStatus" class="mt-2 text-info"></div>
                                 </div>
                                 
                              <!-- Doctor Info Card (shown when doctor is selected) -->
@@ -291,6 +292,48 @@
         doctorCard.style.display = 'none';
     }
 });
+
+//Check Doctor Availability
+document.addEventListener('DOMContentLoaded', function () {
+    const doctorSelect = document.querySelector('select[name="doctor"]');
+    const dateInput = document.querySelector('input[name="date"]');
+    const timeSelect = document.querySelector('select[name="time"]');
+    const statusDiv = document.getElementById('availabilityStatus');
+
+    function checkAvailability() {
+        const doctorId = doctorSelect.value;
+        const date = dateInput.value;
+        const time = timeSelect.value;
+
+        if (doctorId && date && time) {
+            statusDiv.innerHTML = '<span>Checking availability...</span>';
+
+            fetch(`/check-doctor-availability?doctor_id=${doctorId}&date=${date}&time=${encodeURIComponent(time)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.available) {
+                        statusDiv.innerHTML = '<span class="text-success">Doctor is available ✅</span>';
+                    } else {
+                        statusDiv.innerHTML = '<span class="text-danger">Doctor is not available ❌</span>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking availability:', error);
+                    statusDiv.innerHTML = '<span class="text-danger">Error checking availability.</span>';
+                });
+        } else {
+            statusDiv.innerHTML = '';
+        }
+    }
+
+    if (doctorSelect && dateInput && timeSelect) {
+        doctorSelect.addEventListener('change', checkAvailability);
+        dateInput.addEventListener('change', checkAvailability);
+        timeSelect.addEventListener('change', checkAvailability);
+    } else {
+        console.error("One or more form fields not found in DOM");
+    }
+});
     // Form submission handler
             document.getElementById('appointmentForm').addEventListener('submit', function (event) {
             event.preventDefault();  // Prevent default form submission
@@ -360,31 +403,26 @@
                     `;
                 }
             })
-            .catch(error => {
-                loadingSpinner.style.display = 'none';
-                buttonText.textContent = 'Book Appointment';
-                form.querySelector('button[type="submit"]').disabled = false;
+            spinner.classList.add('d-none');
+    buttonText.classList.remove('d-none');
 
-                if (error.errors) {
-                    // Display all validation errors in a single list
-                    let errorList = '<div class="alert alert-danger alert-dismissible fade show"><ul>';
-                    for (const [field, messages] of Object.entries(error.errors)) {
-                        messages.forEach(message => {
-                            errorList += `<li>${message}</li>`;
-                        });
-                    }
-                    errorList += '</ul><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
-                    alertContainer.innerHTML = errorList;
-                } else {
-                    // Show generic error message
-                    alertContainer.innerHTML = `
-                        <div class="alert alert-danger alert-dismissible fade show">
-                            ${error.message || 'An error occurred. Please try again later.'}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    `;
-                }
+    // Custom error from server
+    if (error.message) {
+        alertContainer.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+    }
+    // Validation errors
+    else if (error.errors) {
+        let errorList = '<div class="alert alert-danger"><ul>';
+        for (const [field, messages] of Object.entries(error.errors)) {
+            messages.forEach(message => {
+                errorList += `<li>${message}</li>`;
             });
+        }
+        errorList += '</ul></div>';
+        alertContainer.innerHTML = errorList;
+    } else {
+        alertContainer.innerHTML = `<div class="alert alert-danger">An unexpected error occurred. Please try again later.</div>`;
+    }
         });
             
     // Initialize date picker with disabled past dates

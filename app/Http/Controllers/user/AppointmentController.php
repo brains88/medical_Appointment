@@ -70,6 +70,19 @@ class AppointmentController extends Controller
             ], 422);
         }
 
+         // 🛡️ Check if doctor is available
+         $doctorIsTaken = Appointment::where('doctor_id', $request->doctor)
+         ->where('appointment_date', $request->date)
+         ->where('appointment_time', $request->time)
+         ->exists();
+
+     if ($doctorIsTaken) {
+         return response()->json([
+             'success' => false,
+             'message' => 'The selected doctor is not available at this time. Please choose another time.',
+         ], 409); // 409 Conflict
+     }
+
         // Start a database transaction
         DB::beginTransaction();
 

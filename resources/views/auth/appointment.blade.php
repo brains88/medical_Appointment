@@ -132,42 +132,46 @@
 
 <script>
 //Check Doctor Availability
-    document.addEventListener('DOMContentLoaded', function () {
-        const doctorSelect = document.querySelector('select[name="doctor"]');
-        const dateInput = document.querySelector('input[name="date"]');
-        const timeSelect = document.querySelector('select[name="time"]');
-        const statusDiv = document.getElementById('availabilityStatus');
+document.addEventListener('DOMContentLoaded', function () {
+    const doctorSelect = document.querySelector('select[name="doctor"]');
+    const dateInput = document.querySelector('input[name="date"]');
+    const timeSelect = document.querySelector('select[name="time"]');
+    const statusDiv = document.getElementById('availabilityStatus');
 
-        function checkAvailability() {
-            const doctorId = doctorSelect.value;
-            const date = dateInput.value;
-            const time = timeSelect.value;
+    function checkAvailability() {
+        const doctorId = doctorSelect.value;
+        const date = dateInput.value;
+        const time = timeSelect.value;
 
-            if (doctorId && date && time) {
-                statusDiv.innerHTML = '<span>Checking availability...</span>';
+        if (doctorId && date && time) {
+            statusDiv.innerHTML = '<span>Checking availability...</span>';
 
-                fetch(`/check-doctor-availability?doctor_id=${doctorId}&date=${date}&time=${time}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.available) {
-                            statusDiv.innerHTML = '<span class="text-success">Doctor is available ✅</span>';
-                        } else {
-                            statusDiv.innerHTML = '<span class="text-danger">Doctor is not available ❌</span>';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error checking availability:', error);
-                        statusDiv.innerHTML = '<span class="text-danger">Error checking availability.</span>';
-                    });
-            } else {
-                statusDiv.innerHTML = '';
-            }
+            fetch(`/check-doctor-availability?doctor_id=${doctorId}&date=${date}&time=${encodeURIComponent(time)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.available) {
+                        statusDiv.innerHTML = '<span class="text-success">Doctor is available ✅</span>';
+                    } else {
+                        statusDiv.innerHTML = '<span class="text-danger">Doctor is not available ❌</span>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking availability:', error);
+                    statusDiv.innerHTML = '<span class="text-danger">Error checking availability.</span>';
+                });
+        } else {
+            statusDiv.innerHTML = '';
         }
+    }
 
+    if (doctorSelect && dateInput && timeSelect) {
         doctorSelect.addEventListener('change', checkAvailability);
         dateInput.addEventListener('change', checkAvailability);
         timeSelect.addEventListener('change', checkAvailability);
-    });
+    } else {
+        console.error("One or more form fields not found in DOM");
+    }
+});
 
 document.getElementById('appointmentForm').addEventListener('submit', function (event) {
     event.preventDefault();  // Prevent default form submission
@@ -222,24 +226,27 @@ document.getElementById('appointmentForm').addEventListener('submit', function (
         }
     })
     .catch(error => {
-        spinner.classList.add('d-none');  // Hide spinner on error
-        buttonText.classList.remove('d-none');  // Show button text
+    spinner.classList.add('d-none');
+    buttonText.classList.remove('d-none');
 
-        if (error.errors) {
-            // Display all validation errors in a single list
-            let errorList = '<div class="alert alert-danger"><ul>';
-            for (const [field, messages] of Object.entries(error.errors)) {
-                messages.forEach(message => {
-                    errorList += `<li>${message}</li>`;
-                });
-            }
-            errorList += '</ul></div>';
-            alertContainer.innerHTML = errorList;
-        } else {
-            // Show generic error message
-            alertContainer.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again later.</div>`;
+    // Custom error from server
+    if (error.message) {
+        alertContainer.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+    }
+    // Validation errors
+    else if (error.errors) {
+        let errorList = '<div class="alert alert-danger"><ul>';
+        for (const [field, messages] of Object.entries(error.errors)) {
+            messages.forEach(message => {
+                errorList += `<li>${message}</li>`;
+            });
         }
-    });
+        errorList += '</ul></div>';
+        alertContainer.innerHTML = errorList;
+    } else {
+        alertContainer.innerHTML = `<div class="alert alert-danger">An unexpected error occurred. Please try again later.</div>`;
+    }
+});
 });
     </script>
 </body>

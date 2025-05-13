@@ -8,7 +8,8 @@ Route::post('/appointment/store', [App\Http\Controllers\auth\AppointmentControll
 Route::get('/login', [App\Http\Controllers\auth\LoginController::class, 'index'])->name('login');
 Route::post('/login/auth', [App\Http\Controllers\auth\LoginController::class, 'login'])->name('login.auth');
 Route::get('/logout', [App\Http\Controllers\auth\LoginController::class, 'logout'])->name('logout');
-Route::get('/check-doctor-availability', [App\Http\Controllers\auth\AppointmentController::class, 'checkAvailability']);
+Route::get('/check-doctor-availability', [App\Http\Controllers\auth\AppointmentController::class, 'checkAvailability'])
+    ->name('check.doctor.availability');
 //User Dashboard
 Route::middleware(['auth', 'patient'])->prefix('patient')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\user\DashboardController::class, 'index'])->name('patient.dashboard');

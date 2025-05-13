@@ -87,7 +87,7 @@
                                                     <i class="fas fa-chart-bar"></i> View Stats
                                                 </button>
                                             </td>
-                                            <!-- Patient Delete Button -->
+                                            <!-- Patient Delete Button 
                                             <td>
                                             <form action="{{ route('admin.patients.delete', $patient->id) }}" 
                                               method="POST" 
@@ -101,7 +101,7 @@
                                             </button>
                                         </form>
                                         </td>
-                                        <!-- End of Patient Delete Button -->
+                                       End of Patient Delete Button -->
                                         </tr>
                                         @empty
                                         <tr>
